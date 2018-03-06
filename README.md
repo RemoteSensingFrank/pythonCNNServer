@@ -1,0 +1,2 @@
+# pythonCNNServer
+手写数字识别服务器和客户端代码，使用python搭建的服务器
