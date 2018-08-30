@@ -1,0 +1,4 @@
+./mnist_LeNet_chkpt
+./ImageFiles
+./CNN/.vscode
+./CNN/model/__pycache__
