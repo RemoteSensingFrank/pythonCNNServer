@@ -1,16 +1,21 @@
 # -*- coding: utf-8 -*-
+
+
+import sys
+sys.path.append('./CNN/model')
+
 import os,base64,json,datetime
 import datetime
 from flask import Flask, request,render_template
 from flask_uploads import UploadSet, configure_uploads, IMAGES
-from CNN_Model import readModel
+import mnistLeNet
 app = Flask(__name__)
-m_predict = readModel.Predict()
+m_predict = mnistLeNet.LeNetModel_io()
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
-        dataList = json.loads(request.data)
+        dataList = json.loads(request.data.decode('utf-8'))
         imagedata = base64.b64decode(dataList['image'])
         date = datetime.datetime.now()
         datestr = date.strftime('%Y-%m-%d_%H-%M-%S')
