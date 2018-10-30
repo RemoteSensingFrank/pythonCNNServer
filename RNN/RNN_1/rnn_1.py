@@ -51,6 +51,7 @@ def gen_batch(raw_data, batch_size, num_steps):
       for i in range(batch_size):
             data_x[i] = raw_x[batch_partition_length * i:batch_partition_length * (i + 1)]
             data_y[i] = raw_y[batch_partition_length * i:batch_partition_length * (i + 1)]
+
       # further divide batch partitions into num_steps for truncated backprop
       epoch_size = batch_partition_length // num_steps
 
@@ -86,7 +87,13 @@ RNN Inputs
 # Turn our x placeholder into a list of one-hot tensors:
 # rnn_inputs is a list of num_steps tensors with shape [batch_size, num_classes]
 x_one_hot = tf.one_hot(x, num_classes)     #这个one_hot实际上已经提到过
+x_one_hot_test=tf.one_hot(x[0,:], num_classes)
+print(x_one_hot)
 rnn_inputs = tf.unstack(x_one_hot, axis=1)
+rnn_inputs_test = tf.unstack(x_one_hot_test, axis=0)
+print(rnn_inputs[0])
+print(init_state)
+print(tf.concat([rnn_inputs[0], init_state],1))
 
 """
 Definition of rnn_cell
@@ -174,4 +181,4 @@ def train_network(num_epochs, num_steps, state_size=4, verbose=True):
                               training_loss = 0
       return training_losses
 
-training_losses = train_network(5,num_steps,state_size)
+training_losses = train_network(1,num_steps,state_size)
