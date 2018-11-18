@@ -201,7 +201,27 @@ def create_category_index_from_labelmap(label_map_path, use_display_name=True):
 def create_class_agnostic_category_index():
   """Creates a category index with a single `object` class."""
   return {1: {'id': 1, 'name': 'object'}}
+
+#导入labelMap文件
+def loadTfLabelMap(path):
+    """Loads label map proto.
+    Args:
+      path: path to StringIntLabelMap proto text file.
+    Returns:
+      a StringIntLabelMapProto
+    """
+    with tf.gfile.GFile(path, 'r') as fid:
+        label_map_string = fid.read()
+        label_map = string_int_label_map_pb2.StringIntLabelMap()
+        try:
+            text_format.Merge(label_map_string, label_map)
+        except text_format.ParseError:
+            label_map.ParseFromString(label_map_string)
+    _validate_label_map(label_map)
+    return label_map
+
 ###########################################################################################
+
 #导入计算图文件
 """ def loadTfGraph(path):
     detection_graph = tf.Graph()
@@ -214,7 +234,10 @@ def create_class_agnostic_category_index():
 
     return detection_graph
  """
+
 detection_graph = tf.Graph()
+labelMap = create_category_index_from_labelmap(PATH_TO_LABEL_MAP,use_display_name=True)
+
 with detection_graph.as_default():
   od_graph_def = tf.GraphDef()
   with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
@@ -222,10 +245,6 @@ with detection_graph.as_default():
     od_graph_def.ParseFromString(serialized_graph)
     tf.import_graph_def(od_graph_def, name='')
 
-#导入labelMap文件
-def loadTfLabelMap(path):
-    #todo:
-    return {1: {'id': 1, 'name': 'object'}}
 
 #影像转换为数据
 def load_image_into_numpy_array(image):
@@ -285,21 +304,44 @@ def target_detect(pathImg,graph,labelMap):
     output_dict = run_inference_for_single_image(image_np, graph)
     return output_dict
 
-labelMap = loadTfLabelMap(PATH_TO_LABEL_MAP)
-output=target_detect("D:\\python_server\\pythonCNNServer\\CNN\\model\\fastrcnnModel\\DJI_0014.JPG",detection_graph,labelMap)
-boxes = output['detection_boxes']
-scores = output['detection_scores']
+def target_detect_visiual_output(pathImg,labelMap,thresthold):
+    output=target_detect(pathImg,detection_graph,labelMap)
+    boxes = output['detection_boxes']
+    scores = output['detection_scores']
+    img = Image.open(pathImg)
+    (im_width, im_height) = img.size
+    visiual_output=[]
+    for idx,score in enumerate(scores):
+        if score>thresthold:
+            box={}
+            box['box']=(boxes[idx][0]*im_width,boxes[idx][2]*im_height,boxes[idx][1]*im_width,boxes[idx][3]*im_height)
+            visiual_output.append(box)
+            vis_score={}
+            vis_score['score']=score
+            visiual_output.append(vis_score)
+    return visiual_output
+
+def visiual_detect(detect_dict,pathImg,labelMap,thresthold):
+    output=target_detect(pathImg,detection_graph,labelMap)
+    boxes = output['detection_boxes']
+    scores = output['detection_scores']
+    img = Image.open(pathImg)
+    (im_width, im_height) = img.size
+    draw= ImageDraw.Draw(img)
+    for idx,score in enumerate(scores):
+        if score>thresthold:
+            draw.rectangle((boxes[idx][0]*im_width,boxes[idx][2]*im_height,boxes[idx][1]*im_width,boxes[idx][3]*im_height))
+    img.save("D:\\python_server\\pythonCNNServer\\CNN\\model\\fastrcnnModel\\out.jpg")
 
 
-img = image = Image.open("D:\\python_server\\pythonCNNServer\\CNN\\model\\fastrcnnModel\\DJI_0014.JPG")
-(im_width, im_height) = img.size
-preout= img.resize((im_width, im_height))
-preout.save("D:\\python_server\\pythonCNNServer\\CNN\\model\\fastrcnnModel\\pre.jpg")
-draw= ImageDraw.Draw(img)
-for idx,score in enumerate(scores):
-    if score>0.9:
-        draw.rectangle((boxes[idx][0]*im_width,boxes[idx][2]*im_height,boxes[idx][1]*im_width,boxes[idx][3]*im_height),fill="red")
-img.save("D:\\python_server\\pythonCNNServer\\CNN\\model\\fastrcnnModel\\out.jpg")
+output=target_detect_visiual_output("D:\\python_server\\pythonCNNServer\\CNN\\model\\fastrcnnModel\\DJI_0024.JPG",labelMap,0.9)
+
+print(output)
+
+#out_dict=target_detect("D:\\python_server\\pythonCNNServer\\CNN\\model\\fastrcnnModel\\DJI_0024.JPG",detection_graph,labelMap)
+#visiual_detect(out_dict,"D:\\python_server\\pythonCNNServer\\CNN\\model\\fastrcnnModel\\DJI_0024.JPG",labelMap,0.9)
+#print(labelMap['id'])
+
 #out=img.resize((im_width*0.3,im_height*0.3));
 #out.show()
 
